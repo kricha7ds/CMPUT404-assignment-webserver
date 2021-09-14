@@ -21,17 +21,46 @@ import socketserver
 # Foundation; All Rights Reserved
 #
 # http://docs.python.org/2/library/socketserver.html
-#
+# https://ruslanspivak.com/lsbaws-part2/
 # run: python freetests.py
 
 # try: curl -v -X GET http://127.0.0.1:8080/
 
-
 class MyWebServer(socketserver.BaseRequestHandler):
+
+    def get_method(self):
+        method = self.data.splitlines()[0]
+        return method.decode('utf-8')
     
+    def get_path_info(self):
+        path = self.data.splitlines()[0]
+        return path
+
+    def get_host(self):
+        host = self.data.splitlines()[1]
+        return host
+
+    def get_port(self):
+        port = self.data.splitlines()[0]
+        return port
+
+    def status_404(self): # Not found
+        return
+    
+    def status_405(self): # Method Not Allowed
+        return
+
+    # TODO: add redirect path as param
+    def status_301(self): # Redirect
+        return
+    
+    # services a request
     def handle(self):
         self.data = self.request.recv(1024).strip()
-        print ("Got a request of: %s\n" % self.data)
+        print(self.data.splitlines())
+        # print ("Got a request of: %s\n" % self.data)
+
+        # TODO: handle header & response for methods
         self.request.sendall(bytearray("OK",'utf-8'))
 
 if __name__ == "__main__":
