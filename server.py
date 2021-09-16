@@ -21,7 +21,7 @@ import socketserver
 # Foundation; All Rights Reserved
 #
 # http://docs.python.org/2/library/socketserver.html
-# https://ruslanspivak.com/lsbaws-part2/
+#
 # run: python freetests.py
 
 # try: curl -v -X GET http://127.0.0.1:8080/
@@ -30,8 +30,12 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
     def get_method(self):
         method = self.data.splitlines()[0]
-        return method.decode('utf-8')
+        return method.decode('utf-8').split()[0]
     
+    # serving index.html
+    def get_mimetype(self):
+        return
+
     def get_path_info(self):
         path = self.data.splitlines()[0]
         return path
@@ -44,24 +48,54 @@ class MyWebServer(socketserver.BaseRequestHandler):
         port = self.data.splitlines()[0]
         return port
 
-    def status_404(self): # Not found
-        return
+# reference for formatting response: https://gist.github.com/bradmontgomery/2219997
+    def status_200(self, message): # OK
+        head = "HTTP/1.1 200 {message}\n\n"
+        content = f"<html><body><h1>{message}</h1></body></html>"
+        return head.encode('utf-8'), content.encode('utf-8')
+
+    def status_404(self, message): # Not found
+        head = "HTTP/1.1 404 {message}\n\n"
+        content = f"<html><body><h1>{message}</h1></body></html>"
+        return head.encode('utf-8'), content.encode('utf-8')
     
-    def status_405(self): # Method Not Allowed
-        return
+    def status_405(self, message): # Method Not Allowed
+        head = "HTTP/1.1 405 {message}\n\n"
+        content = f"<html><body><h1>{message}</h1></body></html>"
+        return head.encode('utf-8'), content.encode('utf-8')
 
     # TODO: add redirect path as param
-    def status_301(self): # Redirect
+    def status_301(self, message): # Redirect
+        head = "HTTP/1.1 301 {message}\n\n"
+        content = f"<html><body><h1>{message}</h1></body></html>"
+        return head.encode('utf-8'), content.encode('utf-8')
+
+# reference: https://ruslanspivak.com/lsbaws-part2/
+    def create_response(self):
         return
     
     # services a request
     def handle(self):
+
         self.data = self.request.recv(1024).strip()
-        print(self.data.splitlines())
+        # print(self.data.splitlines())
         # print ("Got a request of: %s\n" % self.data)
 
+        if self.get_method() != "GET": # Incorrect Method
+            header, response = self.status_405("Method Not Allowed")
+        # elif: # Redirect
+        #     pass
+        # elif: # File Not Found
+        #     pass
+        else:
+            header, response = self.status_200("OK")
+
         # TODO: handle header & response for methods
-        self.request.sendall(bytearray("OK",'utf-8'))
+        # self.request.sendall(bytearray("OK",'utf-8'))
+        data = header
+        data += response
+        self.request.sendall(data)
+        self.request.close()
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 8080
