@@ -1,5 +1,6 @@
 #  coding: utf-8 
 import socketserver
+from time import gmtime, strftime
 import time
 import os
 
@@ -23,7 +24,9 @@ import os
 # Foundation; All Rights Reserved
 #
 # http://docs.python.org/2/library/socketserver.html
-# other good resource: https://www.codementor.io/@joaojonesventura/building-a-basic-http-server-from-scratch-in-python-1cedkg0842
+#
+# RESOURCES:
+# Good resource: https://www.codementor.io/@joaojonesventura/building-a-basic-http-server-from-scratch-in-python-1cedkg0842
 # Anotha one: https://ruslanspivak.com/lsbaws-part2/
 #
 # run: python freetests.py
@@ -34,17 +37,27 @@ BASEURL = "http://127.0.0.1:8080"
 
 class MyWebServer(socketserver.BaseRequestHandler):
 
+    def get_gmtime(self):
+        return time.strftime("Date: %a, %d %b %Y %I:%M:%S %p GMT\r\n", time.gmtime())
+
     def get_method(self):
         method = self.data.splitlines()[0]
         return method.split()[0]
+
+    def get_len(self, msg):
+        length = len(msg)
+        return f"Content-Length: {length}\r\n" # specification
     
     # identify media type of response to be sent
     def get_mimetype(self, fp):
+        spec = "Content-Type: " # specification
         if fp.endswith(".css"):
             ftype = "text/css\r\n\n\n"
-        else:
+        elif fp.endswith(".html"):
             ftype = "text/html\r\n\n\n"
-        return ftype
+        else:
+            ftype = "application/octet-stream\r\n\n\n"
+        return spec + ftype
 
     def valid_file(self, path):
         return os.path.isfile(path)
@@ -100,23 +113,32 @@ class MyWebServer(socketserver.BaseRequestHandler):
         # print("PATH: %s" % path)
 
         if self.get_method() != "GET": # Incorrect Method
-            header, resp = self.status_405()
+            header, body = self.status_405()
         # invalid filepath requested, but the path (file) does exist
         elif ((not self.valid_file(fp)) and self.valid_path(path)): # Redirect
-            header, resp = self.status_301(path)
+            header, body = self.status_301(path)
         # filepath requested not found (does not overlap with cwd)
         elif os.getcwd() not in fp: # File Not Found
-            header, resp = self.status_404()
+            header, body = self.status_404()
         else: # 200 OK
             try: # build the response
-                resp = self.read_file(fp)
-                header = self.status_200()
-                header += "Content-Type: " + self.get_mimetype(fp)
+                body = self.read_file(fp)
+                header = self.status_200() # status
+                # header += self.get_gmtime() # date
+                # header += self.get_len(body) # content-length
+                # header += "Connection: close\r\n" # connection is closed
+                # header += self.get_mimetype(fp)
             except Exception as e: # Some error occurred during response build
-                header, resp = self.status_404()
+                header, body = self.status_404()
+
+        # tack on the rest of the header specs
+        header += self.get_gmtime() # date
+        header += self.get_len(body) # content-length
+        header += "Connection: close\r\n" # connection is closed
+        header += self.get_mimetype(fp)
 
         data = header.encode('utf-8')
-        data += resp
+        data += body
         self.request.sendall(data)
         self.request.close()
 
