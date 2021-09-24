@@ -52,11 +52,11 @@ class MyWebServer(socketserver.BaseRequestHandler):
     def get_mimetype(self, fp):
         spec = "Content-Type: " # specification
         if fp.endswith(".css"):
-            ftype = "text/css\r\n\n\n"
+            ftype = "text/css\r\n\r\n"
         elif fp.endswith(".html"):
-            ftype = "text/html\r\n\n\n"
+            ftype = "text/html\r\n\r\n"
         else:
-            ftype = "application/octet-stream\r\n\n\n"
+            ftype = "application/octet-stream\r\n\r\n"
         return spec + ftype
 
     def valid_file(self, path):
@@ -86,17 +86,17 @@ class MyWebServer(socketserver.BaseRequestHandler):
         return head
 
     def status_404(self): # Not found
-        head = 'HTTP/1.1 404 Not Found\n\n'
+        head = 'HTTP/1.1 404 Not Found\r\n'
         content = f'<h1>Error 404</h1><p>File Not Found.</p>'
         return head, content.encode('utf-8')
 
     def status_405(self): # Method Not Allowed
-        head = 'HTTP/1.1 405 Method Not Allowed\n\n'
+        head = 'HTTP/1.1 405 Method Not Allowed\r\n'
         content = f'<h1>Error 405</h1><p>Method Not Allowed.</p>'
         return head, content.encode('utf-8')
 
     def status_301(self, path): # Redirect
-        head = f'HTTP/1.1 301 Moved Permanently\nLocation: {BASEURL}{path}/\n\n'
+        head = f'HTTP/1.1 301 Moved Permanently\r\nLocation: {BASEURL}{path}/\r\n'
         content = f'<h1>Error 301</h1><p>We have moved!</p>'
         return head, content.encode('utf-8')
     
